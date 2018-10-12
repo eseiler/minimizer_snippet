@@ -4,6 +4,7 @@ struct Minimizer
 {
 public:
 
+    uint64_t const seed{0x8F3F73B5CF1C9ADE};
     Shape<Dna, SimpleShape> kmerShape;
     Shape<Dna, SimpleShape> revCompShape;
     uint8_t k{19};
@@ -73,8 +74,8 @@ public:
 
         for (uint8_t i = 0; i < windowKmers; ++i)
         {
-            uint64_t kmerHash = hashNext(it);
-            uint64_t revcHash = revHashNext(rcit);
+            uint64_t kmerHash = hashNext(it) ^ seed;
+            uint64_t revcHash = revHashNext(rcit) ^ seed;
             if (kmerHash <= revcHash)
             {
                 uint64_t distance = std::distance(begin(text), it);
@@ -97,8 +98,8 @@ public:
         for (uint64_t i = 1; i < possible; ++i)
         {
             windowValues.erase(std::begin(windowValues));
-            uint64_t kmerHash = hashNext(it);
-            uint64_t revcHash = revHashNext(rcit);
+            uint64_t kmerHash = hashNext(it) ^ seed;
+            uint64_t revcHash = revHashNext(rcit) ^ seed;
             if (kmerHash <= revcHash)
             {
                 uint64_t distance = std::distance(begin(text), it);

@@ -5,40 +5,17 @@ git clone https://github.com/eseiler/minimizer_snippet.git
 git clone https://github.com/seqan/seqan.git
 mkdir build
 cd build
-cmake ../minimizer_snippet -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH=$(pwd)/../seqan/util/cmake/ -DSEQAN_INCLUDE_PATH=$(pwd)/../seqan/include/
+cmake ../minimizer_snippet -DCMAKE_CXX_FLAGS="-O3" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_PREFIX_PATH=$(pwd)/../seqan/util/cmake/ -DSEQAN_INCLUDE_PATH=$(pwd)/../seqan/include/
 make minimizer
-./minimizer ../minimizer_snippet/test.fasta
+./minimizer ../minimizer_snippet/test.fasta 19 25
+make full
+./full ../minimizer_snippet/test.fasta 25
+
 ```
-##### Output
+
+##### Example Output
+
 ```console
-22058795596	5	23
-22058795596	5	23
-22058795596	5	23
-22058795596	5	23
-22058795596	5	23
-22058795596	5	23
-37373383433	8	26
-37373383433	8	26
-37028464593	14	32
-37028464593	14	32
-37028464593	14	32
-9867589945	17	35
-9867589945	17	35
-9867589945	17	35
-9867589945	17	35
-9867589945	17	35
-9867589945	17	35
-9867589945	17	35
-10596093995	23	41
-10596093995	23	41
-10596093995	23	41
-10596093995	23	41
-10596093995	23	41
-10596093995	23	41
-33584479098	26	44
-30768229236	31	49
-30768229236	31	49
-30768229236	31	49
-30768229236	31	49
-30768229236	31	49
+The text of length 1000000 contains 246097 distinct minimizers(19,25). Run time: 80 ms.
+The text of length 1000000 contains 999976 25-mers. Run time: 13 ms.
 ```
