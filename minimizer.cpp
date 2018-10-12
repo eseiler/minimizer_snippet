@@ -7,11 +7,14 @@
 int main(int argc, char const * argv[])
 {
     using namespace seqan;
+    // k-mer size
     uint8_t k = static_cast<uint8_t>(atoi(argv[2]));
+    // window size
     uint8_t w = static_cast<uint8_t>(atoi(argv[3]));
     Minimizer minimizer;
     minimizer.resize(k, w);
 
+    // Read Input
     CharString id;
     DnaString seq;
     SeqFileIn seqFileIn;
@@ -25,6 +28,7 @@ int main(int argc, char const * argv[])
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
+    // If two windows contain the same minimizer, start and end position will be the same
     auto uniqueBegins = minimizer.minBegin;
     uniqueBegins.erase(unique(uniqueBegins.begin(), uniqueBegins.end()), uniqueBegins.end());
     auto uniqueEnds = minimizer.minEnd;

@@ -4,12 +4,20 @@ struct Minimizer
 {
 public:
 
+    // Random, but static value for xor for hashes. Counteracts consecutive minimizers.
+    // E.g., without it, the next minimizer after a poly-A region AAAAA would be most likely something like AAAAC.
     uint64_t const seed{0x8F3F73B5CF1C9ADE};
+    // Shape for forward hashes
     Shape<Dna, SimpleShape> kmerShape;
+    // Shape for hashes on reverse complement
     Shape<Dna, SimpleShape> revCompShape;
+    // k-mer size
     uint8_t k{19};
+    // window size
     uint8_t w{25};
+    // start positions of minimizers
     std::vector<uint64_t> minBegin;
+    // end positions of minimizers
     std::vector<uint64_t> minEnd;
 
     template<typename TIt>
@@ -54,6 +62,7 @@ public:
         if (k > seqan::length(text))
             return std::vector<uint64_t> {};
 
+        // Reverse complement without copying/modifying the original string
         typedef ModifiedString<ModifiedString<DnaString, ModComplementDna>, ModReverse> TRC;
         TRC revComp(text);
 
@@ -61,6 +70,7 @@ public:
         uint8_t windowKmers = w - k + 1;
 
         std::vector<uint64_t> kmerHashes;
+        // Stores hash, begin and end for all k-mers in the window
         std::vector<std::tuple<uint64_t, uint64_t, uint64_t>> windowValues;
         kmerHashes.reserve(possible);
         minBegin.reserve(possible);
@@ -72,8 +82,10 @@ public:
         hashInit(it);
         revHashInit(rcit);
 
+        // Initialisation. We need to compute all hashes for the first window.
         for (uint8_t i = 0; i < windowKmers; ++i)
         {
+            // Get smallest canonical k-mer
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
             if (kmerHash <= revcHash)
@@ -95,6 +107,8 @@ public:
         minBegin.push_back(std::get<1>(max));
         minEnd.push_back(std::get<2>(max));
 
+        // For the following windows, we remove the first window k-mer (is now not in window) and add the new k-mer
+        // that results from the window shifting
         for (uint64_t i = 1; i < possible; ++i)
         {
             windowValues.erase(std::begin(windowValues));
