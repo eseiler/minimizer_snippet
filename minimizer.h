@@ -71,11 +71,10 @@ public:
 
         std::vector<uint64_t> kmerHashes;
         // Stores hash, begin and end for all k-mers in the window
-        std::vector<std::tuple<uint64_t, uint64_t, uint64_t>> windowValues;
+        std::deque<std::tuple<uint64_t, uint64_t, uint64_t>> windowValues;
         kmerHashes.reserve(possible);
         minBegin.reserve(possible);
         minEnd.reserve(possible);
-        windowValues.reserve(windowKmers);
 
         auto it = begin(text);
         auto rcit = begin(revComp);
@@ -111,7 +110,7 @@ public:
         // that results from the window shifting
         for (uint64_t i = 1; i < possible; ++i)
         {
-            windowValues.erase(std::begin(windowValues));
+            windowValues.pop_front();
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
             if (kmerHash <= revcHash)
