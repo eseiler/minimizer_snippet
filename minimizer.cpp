@@ -4,15 +4,21 @@
 
 #include "minimizer.h"
 
+struct separators : std::numpunct<char> {
+   char do_thousands_sep() const { return ' '; }
+
+   std::string do_grouping() const { return "\3"; }
+};
+
 int main(int argc, char const * argv[])
 {
     using namespace seqan;
+
+    std::cerr.imbue(std::locale(std::locale(), new separators));
     // k-mer size
     uint8_t k = static_cast<uint8_t>(atoi(argv[2]));
     // window size
     uint8_t w = static_cast<uint8_t>(atoi(argv[3]));
-    Minimizer minimizer;
-    minimizer.resize(k, w);
 
     // Read Input
     CharString id;
@@ -20,24 +26,27 @@ int main(int argc, char const * argv[])
     SeqFileIn seqFileIn;
     if (!open(seqFileIn, argv[1]))
         throw "Unable to open file.\n";
-    readRecord(id, seq, seqFileIn);
+
+    uint64_t distinctMinimizers{0};
+    double duration{0.0};
+    uint64_t textLength{0};
+
+    while (!atEnd(seqFileIn))
+    {
+        Minimizer minimizer;
+        minimizer.resize(k, w);
+        readRecord(id, seq, seqFileIn);
+        auto start = std::chrono::high_resolution_clock::now();
+        auto volatile hashvalue = minimizer.getHash(seq);
+        auto end = std::chrono::high_resolution_clock::now();
+        duration += std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
+        auto uniqueBegins = minimizer.minBegin;
+        uniqueBegins.erase(unique(uniqueBegins.begin(), uniqueBegins.end()), uniqueBegins.end());
+        distinctMinimizers += uniqueBegins.size();
+        textLength += length(seq);
+    }
+
     close(seqFileIn);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    auto hashvalues = minimizer.getHash(seq);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
-
-    // If two windows contain the same minimizer, start and end position will be the same
-    auto uniqueBegins = minimizer.minBegin;
-    uniqueBegins.erase(unique(uniqueBegins.begin(), uniqueBegins.end()), uniqueBegins.end());
-    auto uniqueEnds = minimizer.minEnd;
-    uniqueEnds.erase(unique(uniqueEnds.begin(), uniqueEnds.end()), uniqueEnds.end());
-
-    std::cerr << "The text of length " << length(seq) << " contains " << uniqueBegins.size() << " distinct minimizers(" << (int)k << ',' << (int)w <<"). Run time: " << duration << " ms.\n";
-
-    // for (uint64_t i = 0; i < 30/*uniqueBegins.size()*/; ++i)
-    // {
-    //     std::cerr << hashvalues[i] << '\t' << uniqueBegins[i] << '\t' << uniqueEnds[i] << '\n';
-    // }
+    std::cerr << "The text of length " << textLength << " contains " << distinctMinimizers << " distinct minimizers(" << (int)k << ',' << (int)w <<"). Run time: " << duration << " ms.\n";
 }
