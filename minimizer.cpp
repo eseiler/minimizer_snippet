@@ -1,4 +1,5 @@
 #include <chrono>
+#include <future>
 #include <seqan/seq_io.h>
 #include <seqan/modifier.h>
 
