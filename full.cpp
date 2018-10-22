@@ -7,7 +7,7 @@ int main(int argc, char const * argv[])
     using namespace seqan;
 
     // k-mer size
-    uint8_t k = static_cast<uint8_t>(atoi(argv[2]));
+    uint16_t k = static_cast<uint16_t>(atoi(argv[2]));
 
     // Read input
     CharString id;
@@ -34,7 +34,7 @@ int main(int argc, char const * argv[])
     // The hash value is the arithmitic coding with base 4, i.e. A=0, C=1, G=2, T=3 and hash(TGCA) = 3*4^3 + 2*4^2 + 1*4^1 + 0*4^0
     // Internally the Shape remembers the left most character and the current hash. When we hash the next k-mer
     // (shift one to the right), we only need to remove the hash value of the leftmost character and add the value of
-    // the new character. 
+    // the new character.
     for (uint64_t i = 0; i < possible; ++i)
     {
         kmerHashes.push_back(hashNext(kmerShape, it));
@@ -43,5 +43,5 @@ int main(int argc, char const * argv[])
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
 
-    std::cerr << "The text of length " << length(seq) << " contains " << kmerHashes.size() << ' ' << (int)k << "-mers. Run time: " << duration << " ms.\n";
+    std::cerr << "The text of length " << length(seq) << " contains " << kmerHashes.size() << ' ' << k << "-mers. Run time: " << duration << " ms.\n";
 }

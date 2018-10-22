@@ -17,9 +17,9 @@ int main(int argc, char const * argv[])
 
     std::cerr.imbue(std::locale(std::locale(), new separators));
     // k-mer size
-    uint8_t k = static_cast<uint8_t>(atoi(argv[2]));
+    uint16_t k = static_cast<uint16_t>(atoi(argv[2]));
     // window size
-    uint8_t w = static_cast<uint8_t>(atoi(argv[3]));
+    uint32_t w = static_cast<uint32_t>(atoi(argv[3]));
 
     // Read Input
     CharString id;
@@ -49,5 +49,5 @@ int main(int argc, char const * argv[])
 
     close(seqFileIn);
 
-    std::cerr << "The text of length " << textLength << " contains " << distinctMinimizers << " distinct minimizers(" << (int)k << ',' << (int)w <<"). Run time: " << duration << " ms.\n";
+    std::cerr << "The text of length " << textLength << " contains " << distinctMinimizers << " distinct minimizers(" << k << ',' << w <<"). Run time: " << duration << " ms.\n";
 }
