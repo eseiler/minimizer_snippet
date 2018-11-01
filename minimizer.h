@@ -87,14 +87,13 @@ public:
             // Get smallest canonical k-mer
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
+            uint64_t distance = std::distance(begin(text), it);
             if (kmerHash <= revcHash)
             {
-                uint64_t distance = std::distance(begin(text), it);
                 windowValues.push_back(std::make_tuple(kmerHash, distance, distance + k - 1));
             }
             else
             {
-                uint64_t distance = std::distance(begin(revComp), rcit);
                 windowValues.push_back(std::make_tuple(revcHash, distance, distance + k - 1));
             }
             ++it;
@@ -120,14 +119,13 @@ public:
 
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
+            uint64_t distance = std::distance(begin(text), it);
             if (kmerHash <= revcHash)
             {
-                uint64_t distance = std::distance(begin(text), it);
                 windowValues.push_back(std::make_tuple(kmerHash, distance, distance + k - 1));
             }
             else
             {
-                uint64_t distance = std::distance(begin(revComp), rcit);
                 windowValues.push_back(std::make_tuple(revcHash, distance, distance + k - 1));
             }
             ++it;
