@@ -29,7 +29,7 @@ int main(int argc, char const * argv[])
         throw "Unable to open file.\n";
 
     uint64_t distinctMinimizers{0};
-    double duration{0.0};
+    uint64_t duration{0};
     uint64_t textLength{0};
 
     while (!atEnd(seqFileIn))
