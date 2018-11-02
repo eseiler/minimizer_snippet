@@ -20,10 +20,12 @@ int main(int argc, char const * argv[])
     uint16_t k = static_cast<uint16_t>(atoi(argv[2]));
     // window size
     uint32_t w = static_cast<uint32_t>(atoi(argv[3]));
+    // errors
+    uint32_t e = static_cast<uint32_t>(atoi(argv[4]));
 
     // Read Input
     CharString id;
-    DnaString seq;
+    Dna5String seq;
     SeqFileIn seqFileIn;
     if (!open(seqFileIn, argv[1]))
         throw "Unable to open file.\n";
@@ -32,9 +34,11 @@ int main(int argc, char const * argv[])
     double duration{0.0};
     uint64_t textLength{0};
 
+    std::cerr << "Length\tMinimizers\tThreshold\n";
+
     while (!atEnd(seqFileIn))
     {
-        Minimizer minimizer;
+        Minimizer<Dna5> minimizer;
         minimizer.resize(k, w);
         readRecord(id, seq, seqFileIn);
         auto start = std::chrono::high_resolution_clock::now();
@@ -43,11 +47,12 @@ int main(int argc, char const * argv[])
         duration += std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
         auto uniqueBegins = minimizer.minBegin;
         uniqueBegins.erase(unique(uniqueBegins.begin(), uniqueBegins.end()), uniqueBegins.end());
+        std::cerr << length(seq) << '\t' << uniqueBegins.size() << '\t' << minimizer.get_threshold(length(seq), e) << '\n';
         distinctMinimizers += uniqueBegins.size();
         textLength += length(seq);
     }
 
     close(seqFileIn);
 
-    std::cerr << "The text of length " << textLength << " contains " << distinctMinimizers << " distinct minimizers(" << k << ',' << w <<"). Run time: " << duration << " ms.\n";
+    // std::cerr << "The text of length " << textLength << " contains " << distinctMinimizers << " distinct minimizers(" << k << ',' << w <<"). Run time: " << duration << " ms.\n";
 }

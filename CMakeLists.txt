@@ -30,3 +30,6 @@ target_link_libraries (minimizer ${SEQAN_LIBRARIES})
 
 add_executable (full full.cpp)
 target_link_libraries (full ${SEQAN_LIBRARIES})
+
+add_executable (full_bit full_bit.cpp)
+target_link_libraries (full_bit ${SEQAN_LIBRARIES})

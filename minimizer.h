@@ -1,5 +1,6 @@
 using namespace seqan;
 
+template<typename TValue>
 struct Minimizer
 {
 public:
@@ -8,9 +9,9 @@ public:
     // E.g., without it, the next minimizer after a poly-A region AAAAA would be most likely something like AAAAC.
     uint64_t const seed{0x8F3F73B5CF1C9ADE};
     // Shape for forward hashes
-    Shape<Dna, SimpleShape> kmerShape;
+    Shape<TValue, SimpleShape> kmerShape;
     // Shape for hashes on reverse complement
-    Shape<Dna, SimpleShape> revCompShape;
+    Shape<TValue, SimpleShape> revCompShape;
     // k-mer size
     uint16_t k{19};
     // window size
@@ -19,6 +20,11 @@ public:
     std::vector<uint64_t> minBegin;
     // end positions of minimizers
     std::vector<uint64_t> minEnd;
+
+    std::vector<uint32_t> coverage;
+    std::vector<uint64_t> coverageBegin;
+    std::vector<uint64_t> coverageEnd;
+
 
     template<typename TIt>
     inline void hashInit(TIt it)
@@ -57,13 +63,13 @@ public:
         seqan::resize(revCompShape, k);
     }
 
-    std::vector<uint64_t> getHash(DnaString & text)
+    std::vector<uint64_t> getHash(String<TValue> & text)
     {
         if (k > seqan::length(text))
             return std::vector<uint64_t> {};
 
         // Reverse complement without copying/modifying the original string
-        typedef ModifiedString<ModifiedString<DnaString, ModComplementDna>, ModReverse> TRC;
+        typedef ModifiedString<ModifiedString<String<TValue>, ModComplementDna>, ModReverse> TRC;
         TRC revComp(text);
 
         uint64_t possible = seqan::length(text) > w ? seqan::length(text) - w + 1 : 1;
@@ -87,14 +93,13 @@ public:
             // Get smallest canonical k-mer
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
+            uint64_t distance = std::distance(begin(text), it);
             if (kmerHash <= revcHash)
             {
-                uint64_t distance = std::distance(begin(text), it);
                 windowValues.push_back(std::make_tuple(kmerHash, distance, distance + k - 1));
             }
             else
             {
-                uint64_t distance = std::distance(begin(revComp), rcit);
                 windowValues.push_back(std::make_tuple(revcHash, distance, distance + k - 1));
             }
             ++it;
@@ -120,14 +125,13 @@ public:
 
             uint64_t kmerHash = hashNext(it) ^ seed;
             uint64_t revcHash = revHashNext(rcit) ^ seed;
+            uint64_t distance = std::distance(begin(text), it);
             if (kmerHash <= revcHash)
             {
-                uint64_t distance = std::distance(begin(text), it);
                 windowValues.push_back(std::make_tuple(kmerHash, distance, distance + k - 1));
             }
             else
             {
-                uint64_t distance = std::distance(begin(revComp), rcit);
                 windowValues.push_back(std::make_tuple(revcHash, distance, distance + k - 1));
             }
             ++it;
@@ -140,7 +144,99 @@ public:
             minBegin.push_back(std::get<1>(*min));
             minEnd.push_back(std::get<2>(*min));
         }
-
+        kmerHashes.erase(std::unique(std::begin(kmerHashes), std::end(kmerHashes)), std::end(kmerHashes));
         return kmerHashes;
+    }
+
+    inline uint32_t get_threshold(uint32_t t, uint16_t e)
+    {
+        (void) t;
+        uint32_t destroyed{0};
+        minBegin.erase(std::unique(std::begin(minBegin), std::end(minBegin)), std::end(minBegin));
+        uint32_t available{static_cast<uint32_t>(minBegin.size())};
+        // destroyed += e;
+
+        for (uint16_t i = 0; i < e; ++i)
+        {
+            get_coverage();
+            auto max = std::max_element(coverage.begin(), coverage.end());
+            if (i == e - 1)
+                destroyed += *max;
+            else
+            {
+                destroyed += *max;
+                std::vector<uint64_t> newBegin;
+                std::vector<uint64_t> newEnd;
+                newBegin.reserve(available - destroyed);
+                newEnd.reserve(available - destroyed);
+
+                auto idx = std::distance(coverage.begin(), max);
+                auto cb = coverageBegin[idx];
+                auto ce =  coverageEnd[idx];
+                for (uint64_t i = 0; i < minBegin.size(); ++i)
+                {
+                    auto mb = minBegin[i];
+                    auto me = minEnd[i];
+                    if ((mb >= cb && mb <= ce) || (me >= cb && me <= ce))
+                        continue;
+                    newBegin.push_back(mb);
+                    newEnd.push_back(me);
+                }
+                minBegin = std::move(newBegin);
+                minEnd = std::move(newEnd);
+                coverageBegin.clear();
+                coverageEnd.clear();
+                coverage.clear();
+            }
+        }
+        return destroyed > available ? 0 : available - destroyed;
+    }
+
+    inline void get_coverage()
+    {
+        uint64_t bIndex{1};
+        uint64_t eIndex{0};
+        coverageBegin.push_back(minBegin[0]);
+        coverage.push_back(1);
+
+        minBegin.erase(std::unique(std::begin(minBegin), std::end(minBegin)), std::end(minBegin));
+        minEnd.erase(std::unique(std::begin(minEnd), std::end(minEnd)), std::end(minEnd));
+
+        while ((bIndex < minBegin.size() ) || (eIndex < minEnd.size()))
+        {
+            uint64_t begin = bIndex < minBegin.size() ? minBegin[bIndex] : 0xFFFFFFFFFFFFFFFFULL;
+            uint64_t end   = minEnd[eIndex];
+            // Overlap
+            if (begin < end)
+            {
+                coverageEnd.push_back(begin-1);
+                coverageBegin.push_back(begin);
+                coverage.push_back(coverage.back()+1);
+                ++bIndex;
+            }
+            // Flatten consecutive positions, where one kmer ends and other one starts
+            if (begin == end)
+            {
+                coverageEnd.push_back(begin-1);
+                coverageBegin.push_back(begin);
+                coverage.push_back(coverage.back()+1);
+                while (minBegin[bIndex] == minEnd[eIndex])
+                {
+                    ++bIndex;
+                    ++eIndex;
+                }
+                --eIndex;
+            }
+            // Kmer ends
+            if (end < begin)
+            {
+                coverageEnd.push_back(end);
+                coverageBegin.push_back(end+1);
+                coverage.push_back(coverage.back()-1);
+                ++eIndex;
+            }
+        }
+        coverageBegin.pop_back();
+        coverage.pop_back();
     }
 };
